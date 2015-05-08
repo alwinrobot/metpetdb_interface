@@ -1,7 +1,109 @@
 {% extends "base.html" %}
 
 {% block body %}
+<script src="/static/js/jquery-2.1.1.min.js"></script>
+
 <div class = "table-responsive">
+  <table id ="downloads">
+    <tr>
+      <td id = "here" class="download">Download the...
+        <select id = "amount">
+          <option value = "page">Page Data</option>
+          <option value = "entire">Entire Data</option>
+        </select>
+        as a...
+        <select id = "how" onchange = "link()">
+          <option value ="excel">Excel</option>
+          <option value ="text">Text</option>
+        </select>
+      <script type = "text/javascript">
+        function download() {
+          var howmuch = document.getElementById("amount").value;
+          var how = document.getElementById("how").value;
+          console.log(howmuch);
+          if (howmuch == "page")  {
+            var sampledata = {{samples|tojson}};
+            var sampletext ="Number,Public Data, Subsample count, Chem Analyses count, Image count, User, Rock type, Mineral List, Collection Date\n";
+            for (var a = 0; a < sampledata.length; a++) {
+              sampletext+=sampledata[a]["number"]+","+sampledata[a]["public_data"]+","+sampledata[a]["subsample_count"]+",";
+              sampletext+=sampledata[a]["chem_analyses_count"]+","+sampledata[a]["image_count"]+","+sampledata[a]["user"]+",";
+              sampletext+=sampledata[a]["rock_type"]+",";
+              var word = "";
+              var total = "";
+              for (var b = 0; b < sampledata[a]["mineral_list"].length; b++) {
+                if (sampledata[a]["mineral_list"][b] != ",")  {
+                  word+=sampledata[a]["mineral_list"][b];
+                  console.log(word);
+                }
+                else {
+                  total+=word+"/";
+                  word="";
+                }
+              }
+              total+=word+",";
+              var mins = "{" + sampledata[a]["mineral_list"] + "},"
+              sampletext+=total;
+              //console.log(sampledata[a]["collection_date"].length);
+              if (sampledata[a]["collection_date"]) {
+                sampletext+=sampledata[a]["collection_date"];
+              }
+              sampletext+="\n";
+            }
+          }
+          else {
+            var sampledata = {{samples|tojson}};
+            var sampletext ="Number,Public Data, Subsample count, Chem Analyses count, Image count, User, Rock type, Mineral List, Collection Date\n";
+            for (var a = 0; a < sampledata.length; a++) {
+              for (var b = 0; b < sampledata[a].length; b++)
+              {
+                console.log(sampledata[a][b])
+                sampletext+=sampledata[a][b]["number"]+","+sampledata[a][b]["public_data"]+","+sampledata[a][b]["subsample_count"]+",";
+                sampletext+=sampledata[a][b]["chem_analyses_count"]+","+sampledata[a][b]["image_count"]+","+sampledata[a][b]["user"]["name"]+",";
+                sampletext+=sampledata[a][b]["rock_type"]["rock_type"]+",";
+                var word = "";
+                var total = "";
+                //console.log(sampletext);
+                //console.log(sampledata[a][b]);
+                for (var b1 = 0; b1 < sampledata[a][b]["minerals"].length; b1++) {
+                  if (sampledata[a][b]["minerals"][b1]["name"] != ",")  {
+                    if (b1 != 0)  {
+                      word+="/";
+                    }
+                    word+=sampledata[a][b]["minerals"][b1]["name"];
+                  }
+                }
+                total+=word+",";
+                var mins = "{" + sampledata[a][b]["minerals"] + "},"
+                sampletext+=total;
+                //console.log(sampledata[a]["collection_date"].length);
+                if (sampledata[a][b]["collection_date"]) {
+                  sampletext+=sampledata[a][b]["collection_date"];
+                }
+                sampletext+="\n";
+              }
+            }
+          }
+          if (how == "excel") {
+            var dl = document.createElement('a');
+            dl.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(sampletext));
+            dl.setAttribute('download', 'data.csv');
+            dl.click();
+          }
+          else if (how == "text") {
+            var dl = document.createElement('a');
+            dl.setAttribute('href', 'data:text/plain;base64,' + btoa(sampletext));
+            dl.setAttribute('download', 'data.txt');
+            dl.click();
+          }
+
+
+        };
+      </script>
+      <td class="buttondown"><button type = "submit" name = "downloadfile" type = "button" onclick="download()">Download Data</button></td>
+      <!--<a id = "a" href = "change">Download</a>-->
+    </td>
+    </tr>
+  </table>
   <table id="samplelist" class="table">
     <thead>
       <tr>
@@ -19,6 +121,53 @@
       {% if total %}
       <p>Total: {{ total }}</p>
       {% endif %}
+      <tr>
+        {% if api_key %}
+          <p><a href="{{ url_for('new_sample') }}" target="_blank">New Sample</a></p>
+        {% endif %}
+    </tr>
+    <!--script type = "text/javascript">
+      var sampledata = {{samples|tojson}};
+      var sampletext ="Number,Public Data, Subsample count, Chem Analyses count, Image count, User, Rock type, Mineral List, Collection Date\n";
+      for (var a = 0; a < sampledata.length; a++) {
+        sampletext+=sampledata[a]["number"]+","+sampledata[a]["public_data"]+","+sampledata[a]["subsample_count"]+",";
+        sampletext+=sampledata[a]["chem_analyses_count"]+","+sampledata[a]["image_count"]+","+sampledata[a]["user"]+",";
+        sampletext+=sampledata[a]["rock_type"]+",";
+        var word = "";
+        var total = "";
+        //console.log("total is ", sampledata[a]["mineral_list"].length);
+        console.log(sampledata[a]["mineral_list"]);
+        for (var b = 0; b < sampledata[a]["mineral_list"].length; b++) {
+          if (sampledata[a]["mineral_list"][b] != ",")  {
+            word+=sampledata[a]["mineral_list"][b];
+          }
+          else {
+            total+=word+"/";
+            word="";
+            console.log(b);
+          }
+        }
+        //total+=word+",";
+        console.log(total);
+        var mins = "{" + sampledata[a]["mineral_list"] + "},"
+        //console.log(sampledata[a]["mineral_list"]);
+        sampletext+=total;
+        sampletext+=sampledata[a]["collection_date"];
+        sampletext+="\n";
+      }
+
+      var a = document.getElementById("downloads").appendChild(
+              document.createElement("a")
+          );
+      a.download = "data.csv";
+      a.href = "data:text/csv,"+ encodeURIComponent(sampletext);
+      a.innerHTML = "Download page data as excel file\t";
+
+      var b = document.body.appendChild(document.createElement("a"));
+      b.download = "data.txt";
+      b.href = "data:text/plain;base64," + btoa(sampletext);
+      b.innerHTML = "Download page data as .txt file\n";
+    </script>-->
       {% for sample in samples %}
       <tr>
         <td class="sample_label"><a href="{{ url_for('sample', id=sample.sample_id) }}" target="_blank">{{ sample.number }}</td>
@@ -52,12 +201,12 @@
 
 <script>
 //Ajax call for first, last, next and previous samples
-$('.samples-pagination').click(function (event) 
-{ 
+$('.samples-pagination').click(function (event)
+{
  if(document.URL.indexOf("search") !== -1)
  {
   console.log(document.URL.indexOf("search"));
-   event.preventDefault(); 
+   event.preventDefault();
    var url = $(this).attr('href');
     $('#spinner').show();
         $.ajax({
@@ -79,6 +228,3 @@ $('.samples-pagination').click(function (event)
  });
 </script>
 {% endblock %}
-
-
-

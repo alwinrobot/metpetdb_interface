@@ -91,7 +91,7 @@ def search():
                                                   'collection_date',
                                         'limit':0}).data['objects']
                             temp_list = [];
-                            if not sample_results: 
+                            if not sample_results:
                                 sample_results = samples
                             else:
                                 #intersect sample_results and samples
@@ -116,7 +116,7 @@ def search():
 
     #If View Chemical Analyses selected
     elif request.args.get('resource') == 'chemicalanalysis':
-    
+
         #If minerals are selected
         if request.args.getlist('minerals__in'):
             #MINERAL OR
@@ -146,7 +146,7 @@ def search():
                         for m in minerals:
                             samples = api.sample.get(params={key : filter_dictionary[key], 'minerals__in': m,  'fields': 'sample_id', 'limit':0}).data['objects']
                             temp_list = [];
-                            if not sample_results: 
+                            if not sample_results:
                                 sample_results = samples
                             else:
                                 #intersect sample_results and samples
@@ -154,14 +154,14 @@ def search():
                                     if s in samples:
                                         temp_list.append(s)
                                 sample_results = temp_list
-                
+
                 sample_resources = ((',').join(str(s['sample_id']) for s in sample_results))
 
                 #Get subsample IDs using sample IDs
                 subsamples = api.subsample.get(params={'sample__in': sample_resources, 'fields': 'subsample_id', 'limit':0}).data['objects']
                 subsample_resources = ((',').join(str(s['subsample_id']) for s in subsamples))
                 #Get chemical analyses using subsample IDs
-                chemical_analyses_results = api.chemical_analysis.get(params={'subsample__in': subsample_resources, 'fields': 'chemical_analysis_id,spot_id,public_data,analysis_method,where_done,analyst,analysis_date,reference_x,reference_y,total,mineral', 'limit': 0}).data['objects']  
+                chemical_analyses_results = api.chemical_analysis.get(params={'subsample__in': subsample_resources, 'fields': 'chemical_analysis_id,spot_id,public_data,analysis_method,where_done,analyst,analysis_date,reference_x,reference_y,total,mineral', 'limit': 0}).data['objects']
                 return render_template('samples_mineral_and_chemical_analyses.html', chemical_analyses=chemical_analyses_results)
 
         #If no minerals, get chemical analyses with get-chem-analyses-given-sample-filters
@@ -182,8 +182,8 @@ def search():
             url = (url_for('chemical_analyses')
                    + '?'
                    + urlencode({'chemical_analysis_id__in': ids}))
-            return redirect(url)        
-         
+            return redirect(url)
+
     owner_list = []
     region_list = []
     rock_type_list = []
@@ -204,7 +204,7 @@ def search():
     references = api.reference.get(params={'order_by': 'name', 'limit': 0}).data['objects']
     metamorphic_regions = api.metamorphic_region.get(params={'order_by': 'name', 'limit': 0}).data['objects']
     metamorphic_grades = api.metamorphic_grade.get(params={'limit': 0}).data['objects']
-    samples = api.sample.get(params={'fields': 'user__user_id,user__name,collector,number,sesar_number,country,public_data', 
+    samples = api.sample.get(params={'fields': 'user__user_id,user__name,collector,number,sesar_number,country,public_data',
                                      'limit': 0}).data['objects']
     mineral_relationships = api.mineral_relationship.get(\
                                 params={'limit': 0,
@@ -241,7 +241,7 @@ def search():
 
     for rock_type in rock_type_list:
         rock_type_list.append(rock_type['name'])
-        
+
     for ref in references:
         reference_list.append(ref['name'])
 
@@ -318,7 +318,7 @@ def search_chemistry():
             element = request.args.get('elements__element_id__in')
         elif 'oxides__oxide_id__in' in request.args:
             oxide = request.args.get('oxides__oxide_id__in')
-        mineral_ids = (',').join(request.args.getlist('minerals__in'))            
+        mineral_ids = (',').join(request.args.getlist('minerals__in'))
         cid_list = []
 
     #Get chemical analyses for (E, M)
@@ -651,7 +651,8 @@ def edit_chemical(id):
   api = MetpetAPI(email,api_key).api
   payload = {'email': email, 'api_key': api_key}
 
-  url = env('API_HOST') + '/chemical_analysis/{0}'.format(id)
+  url = env('API_HOST') + 'api/v1/chemical_analysis/{0}'.format(id)
+  url+='?format=json'
   response = get(url, params=payload)
   data = response.json()
 
@@ -661,42 +662,67 @@ def edit_chemical(id):
 
   data2 = api.chemical_analysis.get(params=filters)
   next, previous, last, total_count = paginate_model('chemical_analyses',
-                                                      data2, filters)
+                                                     data2, filters)
+  chemical_analyses = data2.data['objects']
+
   oxide_list=[]
   element_list=[]
   oxides = api.oxide.get(params={'limit': 0}).data['objects']
 
   for oxide in oxides:
-      oxide_list.append(oxide)
+    oxide_list.append(oxide)
 
   elements = api.element.get(params={'limit': 0}).data['objects']
   for element in elements:
-    element_list.append(element)
-    print element
+        element_list.append(element)
+   #print element
+
+  selected_oxide_list = []
+  for o in data['oxides']:
+      oxideurl = env('API_HOST') + o + '?format=json'
+      oxideresponse = get(oxideurl, params=payload)
+      oxidedata = oxideresponse.json()
+      selected_oxide_list.append(oxidedata)
+
+  suburl = env('API_HOST') + data['subsample'] + '?format=json'
+  response2 = get(suburl, params=payload)
+  subdata = response2.json()
+
+  sampleurl = env('API_HOST') + subdata['sample'] + '?format=json'
+  sampleresponse = get(sampleurl, params=payload)
+  sampledata = sampleresponse.json()
+
+  userurl = env('API_HOST') + data['user'] + '?format=json'
+  response3 = get(userurl, params=payload)
+  userdata = response3.json()
 
 
 
   if form.validate_on_submit():
-    data['chemical_analysis']['owner_name'] = form.owner.data
-    data['chemical_analysis']['public_data'] = form.public.data
-    data['chemical_analysis']['analyst'] = form.analyst.data
-    data['chemical_analysis']['analysis_material'] =form.analysis_material.data
-    data['chemical_analysis']['total'] =form.total.data
-    data['chemical_analysis']['stage_x']=form.StageX.data
-    data['chemical_analysis']['stage_y']=form.StageY.data
+    userdata['name'] = form.owner.data
+    data['public_data'] = form.public.data
+    data['analyst'] = form.analyst.data
+    data['total'] = form.total.data
+    data['stage_x'] = form.StageX.data
+    data['stage_y'] = form.StageY.data
+    data = api.chemical_analysis.put(id, data)
     return redirect(url_for('search'))
   else:
-    form.owner.data = data['chemical_analysis']['owner_name']
-    form.public.data = data['chemical_analysis']['public_data']
-    form.analyst.data = data['chemical_analysis']['analyst']
-    form.analysis_material.data = data['chemical_analysis']['analysis_material']
-    form.total.data = data['chemical_analysis']['total']
-    form.StageX.data = data['chemical_analysis']['stage_x']
-    form.StageY.data = data['chemical_analysis']['stage_y']
+    form.owner.data = userdata['name']
+    form.public.data = data['public_data']
+    form.analyst.data = data['analyst']
+    #form.analysis_material.data = data['analysis_material']
+    form.total.data = data['total']
+    form.StageX.data = data['stage_x']
+    form.StageY.data = data['stage_y']
 
   return render_template('edit_chemical.html',
                           form = form,
                           data = data,
+                          subdata = subdata,
+                          sampledata = sampledata,
+                          userdata = userdata,
+                          selected_oxide_list = selected_oxide_list,
                           oxide_list = oxide_list,
                           element_list = element_list,
                           id = id,
@@ -950,11 +976,59 @@ def chemical_analysis(id):
 
     url = env('API_HOST') + '/chemical_analysis/{0}'.format(id)
     response = get(url, params=payload)
+    #data1 = response.json()
+    #print data1['chemical_analysis']['id']
+
+    api = MetpetAPI(email, api_key).api
+
+    url = env('API_HOST') + 'api/v1/chemical_analysis/{0}'.format(id)
+    url += '?format=json'
+    response = get(url, params=payload)
+
+    print response
+    print url
     data1 = response.json()
-    print data1['chemical_analysis']['id']
+    print data1
+
+    oxide_list = []
+    for o in data1['oxides']:
+      oxideurl = env('API_HOST') + o + '?format=json'
+      oxideresponse = get(oxideurl, params=payload)
+      oxidedata = oxideresponse.json()
+      oxide_list.append(oxidedata)
+    #print oxide_list
+
+    element_list = []
+    for e in data1['elements']:
+        elementurl = env('API_HOST') + e + '?format=json'
+        elementresponse = get(elementurl, params=payload)
+        elementdata = elementresponse.json()
+        element_list.append(elementdata)
+
+    print element_list
+
+    suburl = env('API_HOST') + data1['subsample'] + '?format=json'
+    response2 = get(suburl, params=payload)
+    subdata = response2.json()
+    #print subdata
+
+    sampleurl = env('API_HOST') + subdata['sample'] + '?format=json'
+    sampleresponse = get(sampleurl, params=payload)
+    sampledata = sampleresponse.json()
+    #print sampledata
+
+    userurl = env('API_HOST') + data1['user'] + '?format=json'
+    response3 = get(userurl, params=payload)
+    userdata = response3.json()
 
     return render_template('chemical_analysis.html',
-                            api_key = api_key, data=response.json())
+                            api_key = api_key,
+                            oxide_list = oxide_list,
+                            subdata = subdata,
+                            userdata = userdata,
+                            sampledata = sampledata,
+                            element_list = element_list,
+                            data=data1)
 
 
 @metpet_ui.route('/user/<int:id>')
