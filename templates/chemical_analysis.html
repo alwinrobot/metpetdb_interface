@@ -67,9 +67,9 @@
               <td class="sample_value"><a href="{{ url_for('subsample', id=subdata.subsample_id) }}" target="_blank">{{ subdata.subsample_id }}</a></td>
           </tr>
           <tr>
-            
+            {%if api_key%}
               <p><a href="{{ url_for('edit_chemical', id = data.chemical_analysis_id) }}" target="_blank">Edit</a></p>
-
+            {%endif%}
         </tr>
       </table>
           <div id="chem_elements">
