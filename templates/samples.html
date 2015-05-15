@@ -122,6 +122,7 @@
       <p>Total: {{ total }}</p>
       {% endif %}
       <tr>
+        <p><a href="{{ url_for('new_sample') }}" target="_blank">New Sample</a></p>
         {% if api_key %}
           <p><a href="{{ url_for('new_sample') }}" target="_blank">New Sample</a></p>
         {% endif %}
